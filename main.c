@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <windows.h> // For Windows API: LoadLibrary, GetProcAddress, FreeLibrary
+// This is a Windows-only branch. Linux support removed.
 
 // Define function pointer types
 typedef void (*fill_func_t)(int*, int);
