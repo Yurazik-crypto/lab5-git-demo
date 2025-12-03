@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <windows.h> // For Windows API: LoadLibrary, GetProcAddress, FreeLibrary
+// --- УБРАЛИ: #include <windows.h> ---
+// --- ДОБАВИЛИ: #include <dlfcn.h> для dlopen, dlsym, dlclose ---
+#include <dlfcn.h>
 
-// Define function pointer types
+// Define function pointer types (остаётся без изменений)
 typedef void (*fill_func_t)(int*, int);
 typedef void (*print_func_t)(int*, int);
 typedef void (*process_func_t)(int*, int);
@@ -16,7 +18,8 @@ int main() {
     srand(time(NULL));
 
     int choice;
-    HMODULE hLib; // Handle for the loaded library (Windows API)
+    // --- ИЗМЕНИЛИ: void* lib; вместо HMODULE hLib; ---
+    void* lib;
 
     printf("Select mode:\n");
     printf("1. Work with array (20 elements)\n");
@@ -25,23 +28,46 @@ int main() {
     scanf("%d", &choice);
 
     if (choice == 1) {
-        // Load the array library - Use ANSI string (no L prefix)
-        hLib = LoadLibrary("array_lib.dll");
-        if (hLib == NULL) {
-            fprintf(stderr, "Error loading array_lib.dll.\n");
+        // --- ИЗМЕНИЛИ: dlopen вместо LoadLibrary ---
+        // Имя библиотеки изменено на .so для Linux
+        lib = dlopen("./array_lib.so", RTLD_LAZY);
+        if (!lib) {
+            // --- ИЗМЕНИЛИ: dlerror() вместо GetLastError() ---
+            fprintf(stderr, "Error loading array_lib.so: %s\n", dlerror());
             return 1;
         }
 
-        // Get function pointers
-        fill_func_t fill_array_random_ptr = (fill_func_t)GetProcAddress(hLib, "fill_array_random");
-        print_func_t print_array_ptr = (print_func_t)GetProcAddress(hLib, "print_array");
-        process_func_t process_array_ptr = (process_func_t)GetProcAddress(hLib, "process_array");
-
-        if (!fill_array_random_ptr || !print_array_ptr || !process_array_ptr) {
-            fprintf(stderr, "Error getting function address.\n");
-            FreeLibrary(hLib);
+        // --- ИЗМЕНИЛИ: dlsym вместо GetProcAddress ---
+        fill_func_t fill_array_random_ptr = (fill_func_t)dlsym(lib, "fill_array_random");
+        // Проверим ошибку после dlsym
+        char* dlsym_error = dlerror();
+        if (dlsym_error != NULL) {
+            fprintf(stderr, "Error getting fill_array_random: %s\n", dlsym_error);
+            dlclose(lib); // --- ИЗМЕНИЛИ: dlclose вместо FreeLibrary ---
             return 1;
         }
+
+        print_func_t print_array_ptr = (print_func_t)dlsym(lib, "print_array");
+        dlsym_error = dlerror();
+        if (dlsym_error != NULL) {
+            fprintf(stderr, "Error getting print_array: %s\n", dlsym_error);
+            dlclose(lib);
+            return 1;
+        }
+
+        process_func_t process_array_ptr = (process_func_t)dlsym(lib, "process_array");
+        dlsym_error = dlerror();
+        if (dlsym_error != NULL) {
+            fprintf(stderr, "Error getting process_array: %s\n", dlsym_error);
+            dlclose(lib);
+            return 1;
+        }
+
+        // if (!fill_array_random_ptr || !print_array_ptr || !process_array_ptr) { // Это условие больше не работает так же
+        //     fprintf(stderr, "Error getting function address.\n");
+        //     dlclose(lib); // --- ИЗМЕНИЛИ: dlclose вместо FreeLibrary ---
+        //     return 1;
+        // }
 
         int arr[20];
         printf("\n--- Working with array ---\n");
@@ -56,27 +82,49 @@ int main() {
         printf("Array after processing:\n");
         print_array_ptr(arr, 20);
 
-        FreeLibrary(hLib); // Close the library
+        dlclose(lib); // --- ИЗМЕНИЛИ: dlclose вместо FreeLibrary ---
 
     }
     else if (choice == 2) {
-        // Load the matrix library - Use ANSI string (no L prefix)
-        hLib = LoadLibrary("matrix_lib.dll");
-        if (hLib == NULL) {
-            fprintf(stderr, "Error loading matrix_lib.dll.\n");
+        // --- ИЗМЕНИЛИ: dlopen вместо LoadLibrary ---
+        // Имя библиотеки изменено на .so для Linux
+        lib = dlopen("./matrix_lib.so", RTLD_LAZY);
+        if (!lib) {
+            // --- ИЗМЕНИЛИ: dlerror() вместо GetLastError() ---
+            fprintf(stderr, "Error loading matrix_lib.so: %s\n", dlerror());
             return 1;
         }
 
-        // Get function pointers
-        fill_matrix_func_t fill_matrix_random_ptr = (fill_matrix_func_t)GetProcAddress(hLib, "fill_matrix_random");
-        print_matrix_func_t print_matrix_ptr = (print_matrix_func_t)GetProcAddress(hLib, "print_matrix");
-        process_matrix_func_t process_matrix_ptr = (process_matrix_func_t)GetProcAddress(hLib, "process_matrix");
-
-        if (!fill_matrix_random_ptr || !print_matrix_ptr || !process_matrix_ptr) {
-            fprintf(stderr, "Error getting function address.\n");
-            FreeLibrary(hLib);
+        // --- ИЗМЕНИЛИ: dlsym вместо GetProcAddress ---
+        fill_matrix_func_t fill_matrix_random_ptr = (fill_matrix_func_t)dlsym(lib, "fill_matrix_random");
+        char* dlsym_error = dlerror();
+        if (dlsym_error != NULL) {
+            fprintf(stderr, "Error getting fill_matrix_random: %s\n", dlsym_error);
+            dlclose(lib); // --- ИЗМЕНИЛИ: dlclose вместо FreeLibrary ---
             return 1;
         }
+
+        print_matrix_func_t print_matrix_ptr = (print_matrix_func_t)dlsym(lib, "print_matrix");
+        dlsym_error = dlerror();
+        if (dlsym_error != NULL) {
+            fprintf(stderr, "Error getting print_matrix: %s\n", dlsym_error);
+            dlclose(lib);
+            return 1;
+        }
+
+        process_matrix_func_t process_matrix_ptr = (process_matrix_func_t)dlsym(lib, "process_matrix");
+        dlsym_error = dlerror();
+        if (dlsym_error != NULL) {
+            fprintf(stderr, "Error getting process_matrix: %s\n", dlsym_error);
+            dlclose(lib); // --- ИЗМЕНИЛИ: dlclose вместо FreeLibrary ---
+            return 1;
+        }
+
+        // if (!fill_matrix_random_ptr || !print_matrix_ptr || !process_matrix_ptr) { // Это условие больше не работает так же
+        //     fprintf(stderr, "Error getting function address.\n");
+        //     dlclose(lib); // --- ИЗМЕНИЛИ: dlclose вместо FreeLibrary ---
+        //     return 1;
+        // }
 
         int matrix[5][6];
         printf("\n--- Working with matrix ---\n");
@@ -91,7 +139,7 @@ int main() {
         printf("Matrix after processing:\n");
         print_matrix_ptr(matrix, 5, 6);
 
-        FreeLibrary(hLib); // Close the library
+        dlclose(lib); // --- ИЗМЕНИЛИ: dlclose вместо FreeLibrary ---
 
     }
     else {
